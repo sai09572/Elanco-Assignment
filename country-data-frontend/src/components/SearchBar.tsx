@@ -1,49 +1,79 @@
 import { useEffect, useState } from "react";
-import { countryService } from "../services/countryService";
-import { ICountry } from "../models/country";
+import { ICountry } from "@/src/models/country";
+import { countryService } from "@/src/services/countryService";
 
-function SearchBar() {
+interface SearchBarProps {
+  setCountries: React.Dispatch<React.SetStateAction<ICountry[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+function SearchBar({ setCountries, setLoading, setError }: SearchBarProps) {
   const [inputValue, setInputValue] = useState("");
   const [debouncedValue, setDebouncedValue] = useState("");
-  const [countries, setCountries] = useState<ICountry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Debounce input
+  // Debounce user input
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (inputValue !== debouncedValue) {
-        setDebouncedValue(inputValue);
-      }
+      setDebouncedValue(inputValue);
     }, 500);
     return () => clearTimeout(handler);
   }, [inputValue]);
 
-  // Fetch countries when debouncedValue changes
+  // Fetch default countries on first load
   useEffect(() => {
-    const fetchCountries = async () => {
-      setLoading(true);
-      setError(null);
-
+    const fetchInitialCountries = async () => {
       try {
-        const payload =
-        !isNaN(Number(debouncedValue)) || debouncedValue.includes("UTC")
-            ? { timezone: debouncedValue }
-            : { name: debouncedValue, capital: debouncedValue };
+        const response = await countryService.searchCountries({});
+        if (response.status !== 200) throw new Error("Initial fetch failed");
 
-        const response = await countryService.searchCountries(payload);
-        if (response.status !== 200) {
-          throw new Error(response.data || "Failed to fetch countries");
-        }
-
-        const countryDetails: ICountry[] = response?.data?.map((country: any) => ({
+        const countryDetails: ICountry[] = response.data.map((country: any) => ({
           name: country?.name?.common,
           flag: country?.flags?.svg,
           region: country?.region,
           countryCode: country?.cca3,
         }));
+
         setCountries(countryDetails);
-      } catch (err: any) {
+      } catch {
+        setCountries([]);
+      }
+    };
+
+    fetchInitialCountries();
+  }, [setCountries]);
+
+  // Fetch countries based on debounced search input
+  useEffect(() => {
+    if (!debouncedValue.trim()) {
+      setCountries([]);
+      return;
+    }
+
+    const fetchFilteredCountries = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const isTimezoneQuery =
+          !isNaN(Number(debouncedValue)) || debouncedValue.includes("UTC");
+
+        const payload = isTimezoneQuery
+          ? { timezone: debouncedValue }
+          : { name: debouncedValue, capital: debouncedValue };
+
+        const response = await countryService.searchCountries(payload);
+        if (response.status !== 200) throw new Error("Search failed");
+
+        const countryDetails: ICountry[] = response.data.map((country: any) => ({
+          name: country?.name?.common,
+          flag: country?.flags?.svg,
+          region: country?.region,
+          countryCode: country?.cca3,
+        }));
+
+        setCountries(countryDetails);
+      } catch {
         setError("Failed to fetch countries");
         setCountries([]);
       } finally {
@@ -51,27 +81,17 @@ function SearchBar() {
       }
     };
 
-    if (debouncedValue.trim() !== "") {
-      fetchCountries();
-    } else {
-      setCountries([]);
-    }
-  }, [debouncedValue]);
-
-  const handleChange = (value: string) => {
-    setInputValue(value);
-  };
+    fetchFilteredCountries();
+  }, [debouncedValue, setCountries, setError, setLoading]);
 
   return (
-    <div>
-      <input
-        type="text"
-        placeholder="Search countries..."
-        value={inputValue}
-        onChange={(e) => handleChange(e.target.value.trimStart())}
-        className="p-2 border border-gray-300 rounded-md w-[32ch] md:w-[40ch] lg:w-[50ch]"
-      />
-    </div>
+    <input
+      type="text"
+      placeholder="Search countries..."
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value.trimStart())}
+      className="p-2 border border-gray-300 rounded-md w-[32ch] md:w-[40ch] lg:w-[50ch]"
+    />
   );
 }
 

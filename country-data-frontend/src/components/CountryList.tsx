@@ -1,48 +1,13 @@
-import { useEffect, useState } from "react";
-import { countryService } from "../services/countryService";
-import { ICountry } from "../models/country";
+import { ICountry } from "@/src/models/country";
 import CountryCard from "./CountryCard";
 
-function CountryList() {
-  const [countries, setCountries] = useState<ICountry[]>([]);
-  const [regionList, setRegionList] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+interface CountryListProps {
+  countries: ICountry[];
+  loading: boolean;
+  error: string | null;
+}
 
-  useEffect(() => {
-    const fetchCountries = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await countryService.getCountriesList();
-        if (response.status === 200) {
-          const countryData: ICountry[] = response.data;
-          setCountries(countryData);
-
-          // Extract unique regions
-          const uniqueRegions = [
-            ...Array.from(
-              new Set<string>(
-                countryData
-                  .map((country) => country.region)
-                  .filter(Boolean)
-              )
-            ),
-          ];
-          setRegionList(uniqueRegions);
-        } else {
-          setError("Failed to fetch countries");
-        }
-      } catch (err) {
-        setError("Failed to fetch countries");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCountries();
-  }, []);
-
+function CountryList({ countries, loading, error }: CountryListProps) {
   return (
     <>
       {loading ? (
@@ -54,7 +19,7 @@ function CountryList() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-screen-lg w-full">
             {error ? (
               <p className="text-red-500">{error}</p>
-            ) : countries.length > 0 ? (
+            ) : countries?.length > 0 ? (
               countries.map((country) => (
                 <div key={country.countryCode}>
                   <CountryCard country={country} />
