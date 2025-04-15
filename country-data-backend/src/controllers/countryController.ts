@@ -27,7 +27,8 @@ export const getCountries = async (req: Request, res: Response) => {
       new Country(
         country?.name?.common || 'Unknown',
         country?.flags?.svg || '',
-        country?.region || 'Unknown'
+        country?.region || 'Unknown',
+        country?.cca3 || 'Unknown',
       )
     );
     res.json(countries);
@@ -68,6 +69,7 @@ export const getCountryByCode = async (req: Request, res: Response) => {
     country?.name?.common || 'Unknown',
     country?.flags?.svg || '',
     country?.region || 'Unknown',
+    country?.cca3 || 'Unknown',
     country?.population || 0,
     country?.languages || {},
     country?.currencies || {},
