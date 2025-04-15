@@ -70,7 +70,8 @@ export const getCountryByCode = async (req: Request, res: Response) => {
     country?.region || 'Unknown',
     country?.population || 0,
     country?.languages || {},
-    country?.currencies || {}
+    country?.currencies || {},
+    country?.timezones || []
   );
   res.json(countryDetails);
   } catch (error) {
